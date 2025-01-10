@@ -10,6 +10,8 @@
 typedef struct {
     char name[MAX_NAME];
     int age;
+    struct person *next;
+    
     /*Other stuff */
 } person;
 
@@ -34,7 +36,13 @@ void initHashTable(){
 void printHashTable(){
     for(int i = 0; i <= TABLE_SIZE; i++){
         if(hashTable[i] != NULL){
-            printf("\t%i\t%s\n",i,hashTable[i]->name);
+            printf("\t%i\t%s",i,hashTable[i]->name);
+            person *tmp = hashTable[i]->next;
+            while(tmp != NULL){
+                printf(" <-> %s", tmp->name);
+                tmp = tmp->next;
+            }
+            printf("\n");
         }
         else{
             printf("\t%i\t----\n",i);
@@ -43,55 +51,45 @@ void printHashTable(){
 }
 
 bool hashTableInsert(person *p){
-    /*Generally, it is better for your hash table us a linked list in case of collision, but here we will just be searching for the next open spot*/
     if (p == NULL) return false;
     int index = hash(p->name);
-    if(hashTable[index] != NULL){
-        printf("Collision: %s is trying to access %s's table index\n", p->name, hashTable[index]->name);
-        for(int i = 0; i < TABLE_SIZE; i++){
-            int try = (i + index) % TABLE_SIZE;
-            if(hashTable[try] == NULL){
-                hashTable[try] = p;
-                return true;                
-            }
-        }
-        printf("Table full\n");
-        return false;
-    }
-    else{
-        hashTable[index] = p;
-        return true;                
-    }
+    p->next = hashTable[index];
+    hashTable[index] = p;
+    return true;
 }
 
 bool hashTableDelete(person *p){
-    if(p == NULL) return false;
+    
     int index = hash(p->name);
-    if(hashTable[index] == NULL){
-        printf("They do not exist in the list\n");
-        return false;
+    person *tmp = hashTable[index];
+    person *prev = NULL;
+    while(tmp != NULL &&
+            strncmp(p->name, tmp->name,TABLE_SIZE) != 0){
+                prev = tmp;
+                tmp = tmp->next;
+    }
+    if(tmp == NULL) return false;
+    if(prev == NULL){
+        hashTable[index] = tmp->next;
     }
     else{
-        printf("Deleting %s.\n",p->name);
-        hashTable[index] = NULL;
-        return true;
+        prev->next = tmp->next;
     }
+    return true;
 }
 
 person *hashTableLookup(char *name){
     int index = hash(name);
-    for (int i = 0; i < TABLE_SIZE; i++){
-        int try = (index + i) % TABLE_SIZE;
-        if(hashTable[try] != NULL && 
-            strncmp(hashTable[try]->name,name,TABLE_SIZE) == 0){
-            printf("%s Found!\n",name);
-            return hashTable[try];   
-        }
-
+    person *tmp = hashTable[index];
+    while(tmp != NULL &&
+            strncmp(name, tmp->name,TABLE_SIZE) != 0){
+                tmp = tmp->next;
     }
-    printf("%s not found\n",name);
-    return NULL;
-
+    if(tmp == NULL){
+        printf("%s is not in list\n",name);
+        return NULL;
+    }
+    return tmp;
 }
 
 int main (){
@@ -108,8 +106,9 @@ int main (){
     hashTableInsert(&Paul);
     hashTableInsert(&Natalie);
 
-    (void)hashTableLookup("Michael");
-    (void)hashTableLookup("Jenn");
+    person *tmp = hashTableLookup("Michael");
+    printf("%s has been found and age is %i\n",&tmp->name,tmp->age);
+    tmp = hashTableLookup("Jenn");
     (void)hashTableLookup("Paul");
     (void)hashTableLookup("Natalie");
 
